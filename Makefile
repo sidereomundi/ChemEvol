@@ -1,13 +1,16 @@
-F77 = gfortran
+FC = gfortran
+FFLAGS = -O2 -ffixed-form -I.
 
-FLAGS  =  -O2 
+SRC = src/main.f90 src/interpolation.f90 src/io.f90 src/driver.f90 src/tau.f90
+OBJ = $(SRC:.f90=.o)
 
+all: GCE_min.x
 
-.f.o:
-	$(F77) $(FLAGS) -c $<
+%.o: %.f90
+	$(FC) $(FFLAGS) -c $< -o $@
 
+GCE_min.x: $(OBJ) Makefile
+	$(FC) $(FFLAGS) -o $@ $(OBJ)
 
-
-GCE_min: GCE_min.o Makefile
-	$(F77) $(FLAGS) -o GCE_min.x  GCE_min.o
-
+clean:
+	rm -f $(OBJ) GCE_min.x
