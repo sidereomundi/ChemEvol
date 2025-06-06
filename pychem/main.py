@@ -22,8 +22,14 @@ class GCEModel:
     interpolator: Interpolator = field(init=False)
 
     def __post_init__(self) -> None:
-        # Initialise the interpolator with empty data; real code would read files
-        self.interpolator = Interpolator(InterpolationData())
+        """Initialise the interpolation tables from the data files."""
+
+        # Use a few of the ``Cris`` tables shipped with the repository to build
+        # an example mass/metallicity grid.  In the original Fortran code many
+        # more files are read at this stage.
+        files = ["Cris0.dat", "Cris004.dat", "Cris02.dat"]
+        interp_data = self.io.load_yield_grid(files, basepath="DATI")
+        self.interpolator = Interpolator(interp_data)
 
     def MinGCE(
         self,
@@ -35,24 +41,26 @@ class GCEModel:
         delay: int,
         time_wind: int,
     ) -> None:
-        """Placeholder for the ``MinGCE`` subroutine.
+        """Very small Python reimplementation of ``MinGCE``.
 
-        Parameters correspond to the Fortran arguments of the same name. The
-        implementation below demonstrates how the data loading and a couple of
-        numerical operations are mapped using NumPy.
+        Only a tiny fraction of the original algorithm is reproduced here: a
+        few yield tables are loaded, the lifetime function :func:`tau` is
+        evaluated and the interpolation routine is exercised.  The parameters
+        are kept for API compatibility but are not used.
         """
-        # Example: load Barium yields using the I/O helper
+
+        # Load one of the heavy element yield tables
         ba = self.io.leggi()
 
-        # Example: compute a lifetime for a 1 Msun star
-        lifetime = tau(1.0, tautype=1, binmax=0.0)
+        # Compute a stellar lifetime for a 5 Msun star
+        lifetime = tau(5.0, tautype=1, binmax=0.0)
 
-        # Example interpolation call returning zeros
-        q, hecore = self.interpolator.interp(1.0, 0.0, 0.0)
+        # Interpolate the lighter element yields at the same mass and a
+        # metallicity of 0.004
+        q, hecore = self.interpolator.interp(5.0, 0.004, 0.0)
 
-        # For demonstration we simply print the shapes and values
         print("Loaded Ba yields:", ba.shape)
-        print("Lifetime for 1 Msun:", lifetime)
-        print("Interpolated Q vector:", q)
+        print("Lifetime for 5 Msun:", lifetime)
+        print("Interpolated Q vector (first 5):", q[:5])
         print("He core mass:", hecore)
 

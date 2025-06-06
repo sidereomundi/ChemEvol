@@ -59,3 +59,46 @@ class IORoutines:
         """Load Li yields from ``KarakasLi.dat``."""
         return self._load("KarakasLi.dat", slice(0, None))
 
+    # ------------------------------------------------------------------
+    # Additional helpers ------------------------------------------------
+
+    def load_yield_grid(self, filenames: list[str], basepath: str = "DATI") -> "InterpolationData":
+        """Read a set of yield tables forming a mass/metallicity grid.
+
+        Parameters
+        ----------
+        filenames : list of str
+            Sequence of files containing the yields for different
+            metallicities. Each file should start with a line of the form
+            ``"Z=<value>"`` which is used to build the metallicity grid.
+        basepath : str, optional
+            Directory containing the input files.
+        """
+
+        from .interpolation import InterpolationData
+
+        mass_grid = None
+        tables = []
+        zetas = []
+
+        for fname in filenames:
+            path = os.path.join(basepath, fname)
+            with open(path, "r") as fh:
+                first = fh.readline()
+                if "=" in first:
+                    zetas.append(float(first.split("=")[1]))
+                else:
+                    raise ValueError(f"Could not parse metallicity from {fname}")
+            arr = np.loadtxt(path, skiprows=2)
+            masses = arr[:, 0]
+            yields = arr[:, 1:].T  # elements x mass
+            if mass_grid is None:
+                mass_grid = masses
+            else:
+                if not np.allclose(mass_grid, masses):
+                    raise ValueError("Inconsistent mass grids in input files")
+            tables.append(yields)
+
+        W = np.stack(tables, axis=2)
+        return InterpolationData(massa=mass_grid, zeta=np.array(zetas), W=W)
+
