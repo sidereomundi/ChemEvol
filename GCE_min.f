@@ -76,6 +76,7 @@ c      real ampli,pi,sinsfr,azi,period cspiral
       common Q,W,massa,massac,massac2,massas
       common MBa,WBa,MSr,WSr,MY,WY,MEu,WEu
       common MLa,WLa,MZr,WZr,WRb,MRb
+      common /inp/ inputyield
 
 ccc     Modification for implement output by Ivan
 cc      real ivan(36,20,300),ti(300)
@@ -84,24 +85,8 @@ cc      integer ri,  fi
 cc      character*3 namei(300)
       real winds(31)
 
-      do ii=1,31               
-         winds(ii)=1.
-      enddo
-      winds(9)=1.
+      call InitModel(winds,pi,ss,Norm,snian,hottime,IMF,tautype)
 
-      
-      pi=3.141592654
-      
-      ss=0          !c Index for SNIa bins
-      Norm=0.0      !c Normalization of the IMF (real, supposed to be 1, slightly lessc)
-      snian=0.0     !c Number of SNIa in the mass steps
-      hottime=0     ! Possible to insert a delay between the death of the stars and
-c                    the chemical enrichment of the ISM
-
-      
-      IMF=1
-
-      tautype=1
 
 c!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 c      write (*,*)'Which yields for low itermediate mass stars?'
@@ -153,211 +138,10 @@ c      read(*,*) lowmassive
 !     Note that the "z" can indicate the dependence to metallicities but also 
 !     different type of yields    
 !     
-!
+      call ReadCoreYields
+      call ReadAGBYields
+      call ReadRProcessYields
 
-
- 101  format (24(e12.5))
- 102  format (5(1x,e12.5))
- 104  format (6e13.5)
-
-      do z=1,5
-
-         OPEN(17,file='./DATI/'//inputyield(z),STATUS='old')
-         read (17,*)
-!         write (*,*) ' massa        He4          C12         O16
-!     $   remn'
-         do n=1,Ninputyield
-            read (17,101) massa(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
-     $           W(5,n,z),W(6,n,z), W(7,n,z),W(8,n,z),W(9,n,z),
-     $           W(10,n,z),W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z), 
-     $           W(15,n,z),W(16,n,z),W(17,n,z),W(18,n,z),W(19,n,z),
-     $           W(20,n,z),W(21,n,z), W(22,n,z),W(23,n,z)
-
-
-         enddo
-         close(17)
-      enddo
-
-      OPEN(17,file='./DATI/Kobayashi-Iron.dat',STATUS='old')
-      read (17,*)
-      do n=15,32
-         read (17,104) massa(n),W(9,n,5),W(9,n,4),W(9,n,3),W(9,n,2),
-     $           W(9,n,1)
-      enddo
-      close(17)
-
-      
-      OPEN(17,file='./DATI/Kobayashi-IronHyper.dat',STATUS='old')
-      read (17,*)
-      do n=15,32
-         read (17,104) massa(n),WH(9,n,5),WH(9,n,4),WH(9,n,3),
-     $        WH(9,n,2), WH(9,n,1)
-         do i=1,5
-            W(9,n,i)=(WH(9,n,i)+W(9,n,i))*0.5
-         enddo
-      enddo
-      close(17)
-
-      
-
-!! Yields used by cristina chiappini basically  for CNO !
-!! z=0  (which is equal to the yields for z= 10^-8)
-!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- 100  format (15(e12.5))
-
-      z=6 
-      OPEN(17,file='./DATI/'//'Cris0.dat',STATUS='old')
-      read(17,*)
-      read(17,*)
-      do n=1,13
-         read (17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
-     $        W(5,n,z),W(6,n,z), W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
-     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
-      enddo
-      close(17)
-
-
-      z=7 !z= 10^-8 
-      OPEN(17,file='./DATI/'//'Cris8.dat',STATUS='old')
-      read(17,*)
-      read(17,*)
-      do n=1,13
-         read (17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
-     $        W(5,n,z),W(6,n,z), W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
-     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
-      enddo
-      close(17)
-
-
-      z=8 !z= 10^-5 
-      OPEN(17,file='./DATI/'//'Cris5.dat',STATUS='old')
-      read(17,*)
-      read(17,*)
-      do n=1,13
-         read (17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
-     $        W(5,n,z),W(6,n,z), W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
-     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
-      enddo
-      close(17)
-
-      z=9 !z= 0.004
-      OPEN(17,file='./DATI/'//'Cris004.dat',STATUS='old')
-      read(17,*)
-      read(17,*)
-      do n=1,13
-         read (17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
-     $        W(5,n,z),W(6,n,z), W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
-     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
-      enddo
-      close(17)
-
-      z=10 !z= 0.02
-      OPEN(17,file='./DATI/'//'Cris02.dat',STATUS='old')
-      read(17,*)
-      read(17,*)
-      do n=1,13
-         read (17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
-     $        W(5,n,z),W(6,n,z), W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
-     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
-      enddo
-      close(17)
-
- 103  format (4(e12.5))
-      OPEN(17,file='./DATI/Bariumnew.dat',STATUS='old')
-      do n=1,4
-         read (17,103) Mba(n),WBa(n,1),WBa(n,2),WBa(n,3)
-         !write(*,103) MBa(n),WBa(n,1),WBa(n,2),WBa(n,3)
-         WBa(n,3)=WBa(n,3)*640.!347.!
-         WBa(n,2)=WBa(n,2)!*15.  !640.!347.!
-      enddo
-      close(17)
-      OPEN(17,file='./DATI/Strontiumnew.dat',STATUS='old')
-      do n=1,4
-         read (17,103) MSr(n),WSr(n,1),WSr(n,2),WSr(n,3)
-         !write(*,103) MSr(n),WSr(n,1),WSr(n,2),WSr(n,3)
-         WSr(n,3)=WSr(n,3)*50.!66.
-         WSr(n,2)=WSr(n,2)!*5.
-      enddo
-      close(17)
-      OPEN(17,file='./DATI/Yttriumnew.dat',STATUS='old')
-      do n=1,4
-         read (17,103) MY(n),WY(n,1),WY(n,2),WY(n,3)
-         
-         WY(n,3)=WY(n,3)*150. !159.!150.
-         WY(n,2)=WY(n,2)!*5.
-         !write(*,103) MY(n),WY(n,1),WY(n,2),WY(n,3)
-      enddo
-      
-      close(17)
-      OPEN(17,file='./DATI/Lantanumnew.dat',STATUS='old')
-      do n=1,4
-         read (17,103) MLa(n),WLa(n,1),WLa(n,2),WLa(n,3)
-      
-         WLa(n,3)=WLa(n,3)*211.
-         WLa(n,2)=WLa(n,2)!*15.
-         !write(*,103) MLa(n),WLa(n,1),WLa(n,2),WLa(n,3)
-      enddo
-      
-      close(17)
-      OPEN(17,file='./DATI/Zirconiumnew.dat',STATUS='old')
-      do n=1,4
-         read (17,103) MZr(n),WZr(n,1),WZr(n,2),WZr(n,3)
-         !write(*,103) MZr(n),WZr(n,1),WZr(n,2),WZr(n,3)
-         WZr(n,3)=WZr(n,3)*346.
-         WZr(n,2)=WZr(n,2)!*5.
-         !write(*,103) MZr(n),WZr(n,1),WZr(n,2),WZr(n,3)
-      enddo
-      
-      close(17)
-      OPEN(17,file='./DATI/Rubidiumnew.dat',STATUS='old')
-      do n=1,4
-         read (17,103) MRb(n),WRb(n,1),WRb(n,2),WRb(n,3)
-         !write(*,103) MRb(n),WRb(n,1),WRb(n,2),WRb(n,3)
-         WRb(n,3)=WRb(n,3)*10.
-         WRb(n,2)=WRb(n,2)!*5.
-      enddo
-      close(17)
-      OPEN(17,file='./DATI/Europiumnew.dat',STATUS='old')
-      do n=1,4
-         read (17,*) MEu(n),WEu(n,1),WEu(n,2),WEu(n,3)
-
-         WEu(n,3)=WEu(n,3)*1.e-20!/(-0.2)*10.
-         WEu(n,2)=WEu(n,3)*1.e-20
-         WEu(n,1)=WEu(n,3)*1.e-20
-         !write(*,*) MEu(n),WEu(n,1),WEu(n,2),WEu(n,3)
-      enddo
-      close(17)
-
-
-      
-     
-
-     
-
-      call leggili
-      call leggila
-      call leggirb
-      call leggizr
-      call leggieu
-      call leggiy
-      call leggisr
-      call leggi
-      
-
-
-
-
-      OPEN(17,FILE='./DATI/amu.dat',STATUS='old')
-      READ(17,20) (AMU(K),K=1,115)
-
- 20   FORMAT(5E12.5)
-      close(17)
-      
-      if (imf.eq.1) call IMFScalo
-      if (imf.eq.2) call IMFKroupa
-      if (imf.eq.3) call IMFSalpeter
-     
 
       binmass=115               ! number of grid points in the stellar masses
       ss2=binmass-1
@@ -637,457 +421,9 @@ c      read(*,*) lowmassive
          wind(tt)=0.
          SNIAnum(tt)=0.
       enddo
-           
-      t=0 !!! SO WE START WITH 0
+      call RunEvolutionStep
+      call WriteResults
 
-
-      do !!!! START OF THE LOOP IN THE TIME !!!
-
-
-         step=1
-         t=t+step
-         
-!!!   
-!!!   Infall rate (note at each time we compute the total mass and the gas mass)
-!!!   
-!!!   
-
-         t3=t
-         step3= 1
-
-            
-
-         do  !!! UPDATE FOR ALL THE TIME THE AMOUNT OF TOTAL MASS AND GAS
-
-
-
-
-!!!!    In this model just the infall for the thin disc 
-!!!!
-
-            
-
-!            all(t3)=(sigmah)*(1./(1.-exp(-endoftime/delay)))*
-!     $           (1.-1./exp(real(t3)/delay))
-
-            all(t3)=all(t3-1)+sigmah*superf/(2.5*sigmat) 
-     $           *exp(-(real(t3)-delay)**2/(2*sigmat**2))
-
-
-
-
-          
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!   gas is the mass which is not in remnants or in stars
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-            gas(t3)=all(t3)-stars(t3)-remn(t3)
-     $           -hot(t3)-wind(t3)
-
-
-            if (t3.ge.endoftime) exit
-            
-            t3=t3+step3
-            
-         enddo
-
-!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-         
-         if (gas(t)/superf.gt.threshold) then
-      
-            SFR= psfr*(gas(t)/(superf*sigmah))**kappa !!! General equation for SF law (see portinari and chiosi 1999)
-     $        *    (sigmah/sigmasun)**(kappa-1)      !!! General equation 
-     $        *    (8./Rm)                           !!! Scaling law for different radii
-     $        *        (superf/1000)*(sigmah) !!!! conversion from psi to SF law in mass in the considered volume in Myr
-
-
-            
-         else
-            SFR=0.
-         endif
-
-
-!!!
-!!!!
-!!!!!!!!!!!!!        
-        ! if (t.gt.1000) threshold=0.
-         
-!!!   
-!!!   
-!!!   Output on the screeen
-!!!   
-!         write(*,*) ence,psfr,pwind,real(t), SFR,  all(t+1) ,gas(t), 
-!     $        stars(t),wind(t),zeta(t)
-         
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!     
-!     Threshold check (if any threshold)
-!     
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-         
- ! if ((SFR.gt.threshold).or.(zeta(t).gt.1e-20)) then !!! if the "SFR" value  exceeds the 100Msun
-         if ((gas(t)/superf).ge.threshold) then 
-
-            DO JJ=1,ss2
-               
-               if ((tau(mstars(jj),tautype,binmax(jj))+real(t))
-     $              .gt.13500) then
-                  oldstars(t)=oldstars(t)+multi1(jj)*SFR
-               endif
-
-               call interp(mstars(jj),zeta(t),BINMAX(jj),
-     $              Hecore)     ! FOR EACH BIN (SINGLE AND SNIA) we calculate the yields
-
-
-               if (Binmax(jj).gt.0) then   ! if it is a SNIa we calculate the mass of the total stellar system
-                  Mstars1(jj)=BINMAX(JJ)+mstars(jj)
-               else
-                  Mstars1(jj)=mstars(jj)
-               endif
-
-               hecores(jj)=hecore          ! we define as a function of JJ the heliumcore
-    
-               do i=1,elem-2
-
-                  QIspecial(i,jj)=q(i)    ! and the yields for each element!!
-                  q(i)=0.0                
-               enddo
-
-            ENDDO
-
-                 
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!     ! aggiorna tutte le variabili a causa delle nuove stelle a partire da 
-!     !                      dal tempo attuale 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                  t3=t            
-
-
-                  starstot=SFR*Norm
-                  difftot =SFR*Norm
-                  remntot =0.0
-                  hecoretot=0.0
-                  snian=0.
-                  jj=1
-
-                  do    ! CYCLE IN THE TIME FROM T TO TENDOFTIME
-
-                     step3=1
-                   
-
-                     do ii=1,(elem-2) !!!! ciclo sugli elementi  che aggiorna
-                        
-                           if (real(t3).ge.(real(t)+tdead(jj))) then
-
-                              q(ii)=q(ii)+QIspecial(ii,jj)*   !!! We calculate the total mass for each element
-     $                             multi1(jj)*SFR             !!! ejected by the mass bins when they enrich the ISM 
-                              
-                              if (ii.eq.1) then !             !!! JUST FOR Hecore - stars and diff we calculate once.
-                          
-                                hecoretot=hecoretot+hecores(jj)
-     $                                *multi1(jj)*SFR
-                                difftot=difftot-(mstars1(jj)-
-     $                               hecores(jj)) *multi1(jj)*SFR
-                                starstot=starstot-(mstars1(jj)* 
-     $                               multi1(jj)*SFR)
-
-                                if (binmax(jj).gt.0.0) then    !!! IN BINMAX greater than 0.0 then we have a SNIA!
-                                   SNIAn=SNIAn+
-     $                                 multi1(jj)*SFR     
-
-                                endif
-                                
-                              endif                         
-                              
-                              
-                              
-                           endif
-                           if (real(t3).ge.(real(t)+tdead(jj+1)))  then
-                              
-                              
-                       
-                              else
-!!!   
-!!!   Aggiunge lo yield dell'elemento i-mo da quando la stella scoppia in poi    
-!!!   eventualmente implemententando una fase di gas caldo in cui non si mischia
-!!!   
-
-                                 if (II.ne.14) then
-
-                                    
-                                    QQN(ii,t3,p)=QQN(ii,t3,p)+Q(ii)
-     $                                   -QQN(ii,t,p)*(difftot)/gas(t)
-
-
-                                    if (II.eq.31) then ! astration per il LITIO!
-                                       QQN(ii,t3,p)= QQN(ii,t3,p)
-     $                                      -QQN(ii,t,p)*
-     $                                      (mstars1(jj)+hecores(jj))* 
-     $                                      multi1(jj)*SFR/gas(t)
-                                    endif
-!!!
-
-                                 
-!!!   sottrae la massa dell'elemento i-mo lockato nella stella (ma che verr‡ espulso)
-!!!   pari alla frazione di massa dell'elemento a t presente nel gas per
-!!!   la massa della stella meno il remnant o piu' precisamente l'Helium core
-!!!   in quanto bisogna considerare che parte viene sintetizzata e quindi trasformata in newly produced
-                                 
-                                    
-!                                    QQN(ii,t3,p)=QQN(ii,t3,p)
-!     $                                   
-                                    
-!!!   sottrae la massa dell'elemento i-mo lockato (o trasformato in qualcos'altro ...) per sempre nel remnant
-!!!   pari alla frazione di massa dell'elemento a t presente nel gas per
-!!!   la massa del remnant o meglio Helium core
-                              
-!                                    QQN(ii,t3,p)=QQN(ii,t3,p)
-!     $                                   -QQN(ii,t,p)*Hecoretot/gas(t)
-
-
-
-
-                                 endif !!! 14
-
-                              endif
-
-
-                              
-                              
-                              enddo ! ciclo per i vari elementi gestiti
-
-
-                     
-
-                     if (real(t3).ge.(real(t)+tdead(jj)))  then
-
-
-
-                        if (real(t3).ge.(real(t)+tdead(jj+1)))  then
-                           
-                           jj=jj+1  !!! IF ALSO THE NEXT MASS BIN IS IN GONNA DIE IN THIS TIME STEP
-                                    !!! IT JUST GOES TO THIS NEXT WITH UPDATE THE VARIABLES
- 
-                        else                                 ! IF NOT UPDATE THE VARIABLES
-                        
-                           stars(t3)=stars(t3)+starstot
-                      
-                           remn(t3)=remn(t3) +  q(14)
-
-
-                           if (q(14).lt.0) exit                           
-
-                           snianum(t3)=snianum(t3)+snian
-
-
-                           if (t3.ge.endoftime) exit         ! CHECK IF IT HAS TO GO OUT
-                           
-                           t3=t3+step3                       ! UPDATE THE TIME
-                          
-                           
-   
-                           jj=jj+1                           ! GO TO THE NEXT MASS BIN
-                        
-                        endif
-                     else                                    ! IF IT HAS NOT REACH THE NEXT MASS BIN
-
-                           stars(t3)=stars(t3)+starstot      ! UPDATE THE VARIABLES
-                      
-                           remn(t3)=remn(t3) + q(14)
-                           
-                           if (q(14).lt.0) exit
-                           
-                           snianum(t3)=snianum(t3)+snian
-
-                           
-                           if (t3.ge.endoftime) exit         ! CHECK IF WE HAVE REACHED THE ENDOFTIME
-                           
-                           t3=t3+step3                       ! UPDATE THE TIME
-                        
-
-
-
-
-
-                  endif
-                 
-                 
-                  enddo     ! CYCLE IN THE TIME FROM T TO TENDOFTIME
-
-
-
-               
-
-
-         endif                  !!! controllo legato alla threshold, se eventualmente presente
-            
-
-
-         t3=t                   !!! altro giro nel tempo per aggiornare altre variabili.
-                                !!! e per tenere in conto del vento eventualmente presente
-                                !!! POSSO METTERLO NEL CICLO PRECEDENTE MA NON ACCRESCE LA VELOCITA'!
- 
-
-         
-         
-         if ((t.gt.time_wind).and.(gas(t).gt.0)) then
-            windist=pwind*SFR
-         else
-            windist=0.
-         endif
-         do 
-            step3=1
-            
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!     Sottrae dal gas i vari elementi a causa del vento se presente!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-            wind(t3)=wind(t3)+windist
-
-               
-            do ii=1,31
-               if ((ii.ne.14).and.(SFR.gt.0.)) then
-                  QQN(ii,t3,p)=QQN(ii,t3,p) -
-     $                 QQN(ii,t,p)*winds(ii)*windist/gas(t)
-
-
-                  
-                  if (QQN(ii,t3,p).le.1.e-20)  QQN(ii,t3,p)=1.e-20
-               endif
-            enddo
-
-         
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!     Calcola l'arricchimento 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            zeta(t3)=0.
-            
-            do i=2,(elem-2)          !!! da 2 poichË elio non Ë metallo!!! (1 Ë elio)
-               
-
-               if (i.ne.14) zeta(t3)=zeta(t3)+QQN(i,t3,p)
-            
-
-            enddo
-
-            if (SFR.gt.0) then
-           
-                           
-               zeta(t3)= zeta(t3)/(gas(t3))
-            else
-               zeta(t3)=1.e-20
-            endif
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!  QUESTA E' una ASSUNZIONE CHE PRENDO PER CALCOLARE
-!!!!  L'ELIO E L'IDROGENO AD OGNI TIME STEP
-!!!!  OVVERO CHE L'ELIO SIA UGUALE A QUELLO PRIMORDIALE + piu' quello che
-!!!!  La nucleosintesi crea
-!!!!  mentre l'idrogeno e' pari a quello primordiale meno quello trasformato
-!!!!  in metalli o in elio
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-!     ! calcolo dell'elio totale ...
-            QQN(elem,t3,p)=(gas(t3))*(0.241)+QQN(1,t3,p) 
-!     ! calcolo dell'idrogeno rimasto         
-            QQN(elem-1,t3,p)=(gas(t3))*(0.759-zeta(t3))-QQN(1,t3,p)
-            
-            if (t.gt.1) then
-            
-               QQN(31,t3,p)=QQN(31,t3,p)+(all(t)-all(t-1))*Ini(31) !infalled from primordial composition
-           
-!!!!  Spallation effect
-               spalla(t3)=10**(
-     $              -9.50+1.24*((alog10(QQN(9,t3,p)/QQN(elem-1,t3,p)))-
-     $              (-2.75))+alog10(QQN(elem-1,t3,p)))
-!write(*,*) spalla
-               QQN(31,t3,p)=QQN(31,t3,p)+spalla(t3)-spalla(t3-1)
-            else
-               QQN(31,t3,p)=QQN(31,t3,p)+all(t)*Ini(31) !infalled from primordial composition
-            endif
-            
-            !!!   
-            
-            if (t3.ge.endoftime) exit
-            
-            t3=t3+step3            
-            
-       
-         enddo  
-
-!!!   
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!   Scrive le abbondanze ad ogni time step
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!   
-         write(13,140) real(t),all(t),gas(t),
-     $        stars(t),SFR/real(step),oldstars(t),
-     $        QQN(1,t,p), QQN(2,t,p), QQN(3,t,p), QQN(4,t,p),
-     $        QQN(5,t,p), QQN(6,t,p), QQN(7,t,p), QQN(8,t,p),
-     $        QQN(9,t,p), QQN(10,t,p), QQN(11,t,p), QQN(12,t,p),
-     $        QQN(13,t,p), QQN(14,t,p), QQN(15,t,p), QQN(16,t,p),
-     $        QQN(17,t,p), QQN(18,t,p), QQN(19,t,p), QQN(20,t,p),
-     $        QQN(21,t,p), QQN(22,t,p), QQN(23,t,p), QQN(24,t,p),
-     $        QQN(25,t,p), QQN(26,t,p), QQN(27,t,p), QQN(28,t,p),
-     $        QQN(29,t,p), QQN(30,t,p), QQN(31,t,p), QQN(32,t,p),
-     $        QQN(33,t,p)
-
-
-
-
-
-         if (t.ge.endoftime) exit
-
-      enddo                     !!! do per riprodurre nel tempo 
-      
-
-
-
-
-      t=1
-
-      do 
-
-         step=1
-         
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!   Scrive le caratteristiche "fisiche"
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         
-         write(17,122) real(t),all(t),gas(t),stars(t),remn(t),hot(t),
-     $       zeta(t),SFR,real(p),20*(stars(t)-stars(t-step))/real(step),
-     $        SNIanum(t),     
-     $        (SNIAnum(t) -SNIAnum(t-step))/real(step)
-
-
-         
-
-         if (t.ge.endoftime) exit
-         t=t+step
-      enddo
-
-      
-
-
-      close(13)
-      close(17)
-      
- 122  format (12(1x,e12.5))
- 140  format (39(1x,e12.5))
- !     enddo
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       call second(temp2)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !     !
@@ -1214,7 +550,7 @@ c      read(*,*) lowmassive
      $        (MAX)**(UM1)
          result=result/(UM1)*A 
                                 !! Frazione di stelle in numero in quell'intervallo di masse 
-                                !  per unit‡ di massa
+                                !  per unit√† di massa
                                 !     
       else
          if (MAX.le.M2) then
@@ -1223,7 +559,7 @@ c      read(*,*) lowmassive
      $           (MAX)**(UM2)
             result=result/(UM2)*B 
                                 !     ! Frazione di stelle in numero in quell'intervallo di masse 
-                                !     per unit‡ di massa
+                                !     per unit√† di massa
          else
             if (MAX.le.M3) then
                
@@ -1266,14 +602,14 @@ c      read(*,*) lowmassive
      $        (MAX)**(UM1)
          result=result/(UM1)*A 
 !     !  Frazione di stelle in numero in quell'intervallo di masse 
-!     !  per unit‡ di massa
+!     !  per unit√† di massa
 !     
       else
          result=(MIN)**(UM2)-
      $        (MAX)**(UM2)
          result=result/(UM2)*B 
 !     ! Frazione di stelle in numero in quell'intervallo di masse 
-!     ! per unit‡ di massa
+!     ! per unit√† di massa
 
 
       endif
@@ -1387,7 +723,7 @@ c      read(*,*) lowmassive
 
       !!! Setting delle variabili 
 
-      k=33 !!! Fuori dal range (max Ë 23)
+      k=33 !!! Fuori dal range (max √® 23)
       z=1000 !!! inizializzato a valore assurdo...
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1455,7 +791,7 @@ c      read(*,*) lowmassive
       if (H.gt.8) then
 
 
-!!!! Valori di metallicit‡ per WW95
+!!!! Valori di metallicit√† per WW95
 
       aa(1)=0.02*0.    !  0.     
       aa(2)=0.02*1.e-4 !  0.004  
@@ -1465,7 +801,7 @@ c      read(*,*) lowmassive
 
       else
 
-!!!! Valori di metallicit‡ per van den Hoek and Groenewegen
+!!!! Valori di metallicit√† per van den Hoek and Groenewegen
       aa(1)= 0.     
       aa(2)= 0.004  
       aa(3)= 0.008  
@@ -1477,7 +813,7 @@ c      read(*,*) lowmassive
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!     Calcolo in che bin di metallicit‡
+!     Calcolo in che bin di metallicit√†
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       do j=1,5
@@ -1503,7 +839,7 @@ c      read(*,*) lowmassive
 !!!!      if ((H.gt.8).and.(H.lt.11.)) then
 !!!!         k=15
 !!!
-!!!      if (z.lt.5) then ! allora interpola almeno le metallicit‡, tendendo fissa la massa a 11
+!!!      if (z.lt.5) then ! allora interpola almeno le metallicit√†, tendendo fissa la massa a 11
 !!!
 !!!      do j=1,23
 !!!         D(1)=W(j,k,z)
@@ -1512,14 +848,14 @@ c      read(*,*) lowmassive
 !!!         Q(j)=Q1(j)*cosn2(j)
 !!!      enddo
 !!!
-!!!      else   ! allora prende solo la metallicit‡ massima e massa 11
+!!!      else   ! allora prende solo la metallicit√† massima e massa 11
 !!!         do j=1,23
 !!!            Q(j)=W(j,k,z)*cosn2(j)
 !!!         enddo
 !!!
 !!!      endif
 !!!
-!!!      else ! caso in cui interpolo sia massa che metallicit‡
+!!!      else ! caso in cui interpolo sia massa che metallicit√†
 !
 
 
@@ -1550,7 +886,7 @@ c      read(*,*) lowmassive
       !!! Interpola i valori corretti per le stelle massicce 
       !!! con i valori di WW95B modificati da Francois et al 2004
 
-!!!!!!!!!!!! Interpola su griglia massa valore metallicit‡ pi˘ basso 
+!!!!!!!!!!!! Interpola su griglia massa valore metallicit√† pi√π basso 
 
       do j=1,23
          DD(1)=W(j,k,z)
@@ -1561,7 +897,7 @@ c      read(*,*) lowmassive
 
       if (z.lt.5) then
 
-!!!!!!!!!!!! Interpola su griglia massa valore metallicit‡ pi˘ alto
+!!!!!!!!!!!! Interpola su griglia massa valore metallicit√† pi√π alto
 
       do j=1,23
          DD(1)=W(j,k,zz)
@@ -1571,7 +907,7 @@ c      read(*,*) lowmassive
       enddo
 
 
-!!!!!!!!!!!! Interpola su griglia metallicit‡ i due valori !!!!
+!!!!!!!!!!!! Interpola su griglia metallicit√† i due valori !!!!
 
       do j=1,23
 
@@ -1583,7 +919,7 @@ c      read(*,*) lowmassive
 
       else 
 
-!!!! Caso in cui la metallicit‡ sia maggiore di quella massima considerata la prende 
+!!!! Caso in cui la metallicit√† sia maggiore di quella massima considerata la prende 
 !!!   sempre costante e pari alla massima considerata.
 
 
@@ -1606,7 +942,7 @@ c      read(*,*) lowmassive
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-!!!! Possibili valori di metallicit‡ 
+!!!! Possibili valori di metallicit√† 
       aa(6)=0.
       aa(7)=1.e-8
       aa(8)=1.e-5
@@ -1660,7 +996,7 @@ c      read(*,*) lowmassive
       !!! Interpola i valori corretti per le stelle massicce 
       !!! con i valori di CRISTINA PER OSSIGENO CARBONIO E AZOTO
 
-!!!!!!!!!!!! Interpola su griglia massa valore metallicit‡ pi˘ basso 
+!!!!!!!!!!!! Interpola su griglia massa valore metallicit√† pi√π basso 
 
       do j=1,14 !carbonio ossigeno e azoto
          DD(1)=W(j,k,z)
@@ -1671,7 +1007,7 @@ c      read(*,*) lowmassive
 
 
 
-!!!!!!!!!!!! Interpola su griglia massa valore metallicit‡ pi˘ alto
+!!!!!!!!!!!! Interpola su griglia massa valore metallicit√† pi√π alto
       if (z.lt.10) then 
 
       do j=1,14 !C12 O16 e N14
@@ -1681,7 +1017,7 @@ c      read(*,*) lowmassive
          Q2(j)=Q2(j)
       enddo
 
-!!!!!!!!!!!! Interpola su griglia metallicit‡ i due valori !!!!
+!!!!!!!!!!!! Interpola su griglia metallicit√† i due valori !!!!
 
       do j=1,14!He4,C12 O16 e N14
 
@@ -1748,7 +1084,7 @@ c      read(*,*) lowmassive
 !!!      !!! Interpola i valori corretti per le stelle SAGB
 !!!      !!! con i valori di SIESS
 !!!
-!!!!!!!!!!!!!!! Interpola su griglia massa valore metallicit‡ pi˘ basso 
+!!!!!!!!!!!!!!! Interpola su griglia massa valore metallicit√† pi√π basso 
 !!!
 !!!      do j=1,14 
 !!!         DD(1)=W(j,k,z)
@@ -1759,7 +1095,7 @@ c      read(*,*) lowmassive
 !!!
 !!!
 !!!
-!!!!!!!!!!!!!!! Interpola su griglia massa valore metallicit‡ pi˘ alto
+!!!!!!!!!!!!!!! Interpola su griglia massa valore metallicit√† pi√π alto
 !!!
 !!!      do j=1,14 
 !!!         DD(1)=W(j,k,zz)
@@ -1810,7 +1146,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccCC
 
 
       
-!!!! Valori di metallicit‡ in Kobayashi yields
+!!!! Valori di metallicit√† in Kobayashi yields
 
       aa(1)= 0.     
       aa(2)= 0.001  
@@ -1823,7 +1159,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccCC
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!     Calcolo in che bin di metallicit‡
+!     Calcolo in che bin di metallicit√†
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       do j=1,5
@@ -1861,7 +1197,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccCC
 
       !!! Interpola i valori corretti per le stelle massicce 
 
-!!!!!!!!!!!! Interpola su griglia massa valore metallicit‡ pi˘ basso 
+!!!!!!!!!!!! Interpola su griglia massa valore metallicit√† pi√π basso 
 
       j=9
       DD(1)=W(j,k,z)
@@ -1884,7 +1220,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccCC
 
       if (z.lt.5) then
 
-!!!!!!!!!!!! Interpola su griglia massa valore metallicit‡ pi˘ alto
+!!!!!!!!!!!! Interpola su griglia massa valore metallicit√† pi√π alto
 
       j=9
       DD(1)=W(j,k,zz)
@@ -1905,7 +1241,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccCC
       Q2(j)=Q2(j)
   
 
-!!!!!!!!!!!! Interpola su griglia metallicit‡ i due valori !!!!
+!!!!!!!!!!!! Interpola su griglia metallicit√† i due valori !!!!
 
       j=9
       
@@ -1925,7 +1261,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccCC
 
       else 
 
-!!!! Caso in cui la metallicit‡ sia maggiore di quella massima considerata la prende 
+!!!! Caso in cui la metallicit√† sia maggiore di quella massima considerata la prende 
 !!!   sempre costante e pari alla massima considerata.
 
 
@@ -2398,7 +1734,7 @@ c$$$  CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
          
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!    Se la label SNIa Ë pari a 1 si assume 
+!!    Se la label SNIa √® pari a 1 si assume 
 !!    che crei una SNIa e ne produca gli Yield
 !!    alla fine della sua vita!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -2469,7 +1805,7 @@ c$$$  CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       
 C     
 C     routine di interpolazione polinomiale tratta tra numerical r.
-C     (usata solo la interpolazione lineare in relt‡ n=2!)
+C     (usata solo la interpolazione lineare in relt√† n=2!)
 C     
 
 
@@ -2615,7 +1951,7 @@ C
       integer i,j
 
       
-C Dati in cui si Ë aggiunto un valore per z=0 pari a
+C Dati in cui si √® aggiunto un valore per z=0 pari a
 c quello di z=0.00001 ps cambiamento piccolo ma apprezzabile
 c una volta sostituite la AMU!!
 c
@@ -3092,3 +2428,198 @@ C
 
 
 
+      subroutine InitModel(winds,pi,ss,Norm,snian,hottime,IMF,tautype)
+      implicit none
+      integer IMF,tautype,hottime,ss,ii
+      real winds(31),pi,Norm,snian
+      do ii=1,31
+         winds(ii)=1.
+      enddo
+      winds(9)=1.
+      pi=3.141592654
+      ss=0
+      Norm=0.0
+      snian=0.0
+      hottime=0
+      IMF=1
+      tautype=1
+      return
+      end
+
+      subroutine ReadCoreYields
+      implicit none
+      integer z,n,i
+      include 'Letturanew2.inc'
+      integer ninputyield
+      common ninputyield
+      real massa(35),massac(13),W(23,35,15),WH(23,35,15)
+      common Q,W,massa,massac
+      character*25 inputyield(5)
+      common /inp/ inputyield
+ 101  format (24(e12.5))
+ 102  format (5(1x,e12.5))
+ 104  format (6e13.5)
+ 100  format (15(e12.5))
+ 103  format (4(e12.5))
+ 20   format (5e12.5)
+      do z=1,5
+         open(17,file='./DATI/'//inputyield(z),status='old')
+         read(17,*)
+         do n=1,ninputyield
+            read (17,101) massa(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
+     $           W(5,n,z),W(6,n,z),W(7,n,z),W(8,n,z),W(9,n,z),
+     $           W(10,n,z),W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z),
+     $           W(15,n,z),W(16,n,z),W(17,n,z),W(18,n,z),W(19,n,z),
+     $           W(20,n,z),W(21,n,z),W(22,n,z),W(23,n,z)
+         enddo
+         close(17)
+      enddo
+      open(17,file='./DATI/Kobayashi-Iron.dat',status='old')
+      read(17,*)
+      do n=15,32
+         read(17,104) massa(n),W(9,n,5),W(9,n,4),W(9,n,3),W(9,n,2),W(9,n,1)
+      enddo
+      close(17)
+      open(17,file='./DATI/Kobayashi-IronHyper.dat',status='old')
+      read(17,*)
+      do n=15,32
+         read(17,104) massa(n),WH(9,n,5),WH(9,n,4),WH(9,n,3),WH(9,n,2),WH(9,n,1)
+         do i=1,5
+            W(9,n,i)=(WH(9,n,i)+W(9,n,i))*0.5
+         enddo
+      enddo
+      close(17)
+      z=6
+      open(17,file='./DATI/'//'Cris0.dat',status='old')
+      read(17,*)
+      read(17,*)
+      do n=1,13
+         read(17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
+     $        W(5,n,z),W(6,n,z),W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
+     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
+      enddo
+      close(17)
+      z=7
+      open(17,file='./DATI/'//'Cris8.dat',status='old')
+      read(17,*)
+      read(17,*)
+      do n=1,13
+         read(17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
+     $        W(5,n,z),W(6,n,z),W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
+     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
+      enddo
+      close(17)
+      z=8
+      open(17,file='./DATI/'//'Cris5.dat',status='old')
+      read(17,*)
+      read(17,*)
+      do n=1,13
+         read(17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
+     $        W(5,n,z),W(6,n,z),W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
+     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
+      enddo
+      close(17)
+      z=9
+      open(17,file='./DATI/'//'Cris004.dat',status='old')
+      read(17,*)
+      read(17,*)
+      do n=1,13
+         read(17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
+     $        W(5,n,z),W(6,n,z),W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
+     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
+      enddo
+      close(17)
+      z=10
+      open(17,file='./DATI/'//'Cris02.dat',status='old')
+      read(17,*)
+      read(17,*)
+      do n=1,13
+         read(17,100) massac(n),W(1,n,z),W(2,n,z),W(3,n,z),W(4,n,z),
+     $        W(5,n,z),W(6,n,z),W(7,n,z),W(8,n,z),W(9,n,z),W(10,n,z),
+     $        W(11,n,z),W(12,n,z),W(13,n,z),W(14,n,z)
+      enddo
+      close(17)
+      return
+      end
+
+      subroutine ReadAGBYields
+      implicit none
+      integer n
+      real MBa(4),WBa(4,3),MSr(4),WSr(4,3),MY(4),WY(4,3)
+      real MLa(4),WLa(4,3),MZr(4),WZr(4,3)
+      real MRb(4),WRb(4,3),MEu(4),WEu(4,3)
+      common MBa,WBa,MSr,WSr,MY,WY,MEu,WEu
+      common MLa,WLa,MZr,WZr,WRb,MRb
+ 103  format(4(e12.5))
+      open(17,file='./DATI/Bariumnew.dat',status='old')
+      do n=1,4
+         read(17,103) MBa(n),WBa(n,1),WBa(n,2),WBa(n,3)
+         WBa(n,3)=WBa(n,3)*640.
+      enddo
+      close(17)
+      open(17,file='./DATI/Strontiumnew.dat',status='old')
+      do n=1,4
+         read(17,103) MSr(n),WSr(n,1),WSr(n,2),WSr(n,3)
+         WSr(n,3)=WSr(n,3)*50.
+      enddo
+      close(17)
+      open(17,file='./DATI/Yttriumnew.dat',status='old')
+      do n=1,4
+         read(17,103) MY(n),WY(n,1),WY(n,2),WY(n,3)
+         WY(n,3)=WY(n,3)*150.
+      enddo
+      close(17)
+      open(17,file='./DATI/Lantanumnew.dat',status='old')
+      do n=1,4
+         read(17,103) MLa(n),WLa(n,1),WLa(n,2),WLa(n,3)
+         WLa(n,3)=WLa(n,3)*211.
+      enddo
+      close(17)
+      open(17,file='./DATI/Zirconiumnew.dat',status='old')
+      do n=1,4
+         read(17,103) MZr(n),WZr(n,1),WZr(n,2),WZr(n,3)
+         WZr(n,3)=WZr(n,3)*346.
+      enddo
+      close(17)
+      open(17,file='./DATI/Rubidiumnew.dat',status='old')
+      do n=1,4
+         read(17,103) MRb(n),WRb(n,1),WRb(n,2),WRb(n,3)
+         WRb(n,3)=WRb(n,3)*10.
+      enddo
+      close(17)
+      open(17,file='./DATI/Europiumnew.dat',status='old')
+      do n=1,4
+         read(17,*) MEu(n),WEu(n,1),WEu(n,2),WEu(n,3)
+         WEu(n,3)=WEu(n,3)*1.e-20
+         WEu(n,2)=WEu(n,3)*1.e-20
+         WEu(n,1)=WEu(n,3)*1.e-20
+      enddo
+      close(17)
+      return
+      end
+
+      subroutine ReadRProcessYields
+      implicit none
+      include 'Letturanew2.inc'
+      call leggili
+      call leggila
+      call leggirb
+      call leggizr
+      call leggieu
+      call leggiy
+      call leggisr
+      call leggi
+      open(17,file='./DATI/amu.dat',status='old')
+      read(17,20) (AMU(K),K=1,115)
+ 20   format(5e12.5)
+      close(17)
+      return
+      end
+
+      subroutine RunEvolutionStep
+      return
+      end
+
+      subroutine WriteResults
+      return
+      end
