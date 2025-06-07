@@ -46,6 +46,13 @@ make
 ./GCE_min.x
 ```
 
+To compile the same sources into a Python module using `f2py` you can run:
+
+```bash
+make python
+```
+This produces `gce.so` which exposes the Fortran routines to Python.
+
 ## Repository layout
 
 ```
