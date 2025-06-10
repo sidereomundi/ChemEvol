@@ -1,3 +1,4 @@
+!f2py fixed
       FUNCTION TAU(H,tautype,binmax)
       real tau
       real H

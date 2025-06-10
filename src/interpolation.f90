@@ -1,3 +1,4 @@
+!f2py fixed
        module interpolation_mod
        contains
       subroutine interp(H2,zeta,BINMAX,Hecore)

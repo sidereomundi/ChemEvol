@@ -1,8 +1,8 @@
        module main_mod
        contains
 
-      Subroutine MinGCE(endoftime,sigmat,sigmah,psfr,pwind,
-     $     delay,time_wind)  
+      subroutine MinGCE(endoftime,sigmat,sigmah,psfr,pwind,&
+     &     delay,time_wind)
       
       use io_mod
       use interpolation_mod
@@ -38,7 +38,7 @@
       real threshold,tau
       real multi1(1000),multi2(1000)
       integer hottime
-      external ranf,assa
+!     external ranf,assa
       integer i,ii,j,jj,t3,n,p,step,step3
       integer z
       integer tt,t

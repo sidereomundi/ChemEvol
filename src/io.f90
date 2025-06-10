@@ -1,3 +1,4 @@
+!f2py fixed
        module io_mod
        contains
       subroutine leggi

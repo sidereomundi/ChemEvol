@@ -32,13 +32,14 @@ src/driver.o: src/main.o src/interpolation.o src/io.o
 GCE_min.x: $(OBJ) Makefile
 	$(FC) $(FFLAGS) -o $@ $(OBJ)
 
-PY_SRC = src/main.f90 src/interpolation.f90 src/io.f90 src/tau.f90
+PY_SRC = src/interpolation.f90 src/io.f90 src/tau.f90
 PY_MOD = gce
 
 # Build the Fortran sources into a Python extension using ``f2py``. This
 # produces ``gce.so`` which exposes the legacy routines to Python.
+
 $(PY_MOD).so: $(PY_SRC)
-	f2py -c --fcompiler=gfortran -m $(PY_MOD) $(PY_SRC)
+	f2py -c --fcompiler=gfortran --f90flags="-ffixed-form -ffixed-line-length-none -fdollar-ok -I$(CURDIR)" -m $(PY_MOD) $(PY_SRC)
 
 # Alias so ``make python`` will produce the module
 python: $(PY_MOD).so
