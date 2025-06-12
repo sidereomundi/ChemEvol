@@ -107,6 +107,10 @@ c
       return
       end
 
+      end module io_mod
+
+      module io_aux_mod
+      contains
 
       subroutine leggiZr
       implicit none
@@ -210,4 +214,4 @@ c
       return
       end
 
-       end module io_mod
+       end module io_aux_mod

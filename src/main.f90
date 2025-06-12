@@ -5,6 +5,7 @@
      &     delay,time_wind)
       
       use io_mod
+      use io_aux_mod
       use interpolation_mod
       implicit none
       integer nmax,elem

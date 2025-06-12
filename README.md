@@ -13,7 +13,8 @@ resources.
 
 * Python 3.10+
 * `numpy`
-* (optional) `gfortran` to build the original Fortran code
+* `gfortran` to build the original Fortran code
+* `meson` (required by `f2py` on Python 3.12+)
 
 Install the Python dependencies using `pip`:
 
@@ -74,6 +75,13 @@ To compile the same sources into a Python module using `f2py` you can run:
 make python
 ```
 This produces `gce.so` which exposes the Fortran routines to Python.
+Building with Python 3.12 requires the external `meson` build
+system in addition to `gfortran`. Install the prerequisites with
+
+```bash
+sudo apt-get install gfortran
+pip install meson
+```
 
 ## Repository layout
 

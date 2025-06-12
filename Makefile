@@ -39,7 +39,7 @@ PY_MOD = gce
 # produces ``gce.so`` which exposes the legacy routines to Python.
 
 $(PY_MOD).so: $(PY_SRC)
-	f2py -c --fcompiler=gfortran --f90flags="-ffixed-form -ffixed-line-length-none -fdollar-ok -I$(CURDIR)" -m $(PY_MOD) $(PY_SRC)
+	FC=gfortran f2py -c --f90flags="-ffixed-form -ffixed-line-length-none -fdollar-ok -I$(CURDIR)" -m $(PY_MOD) $(PY_SRC)
 
 # Alias so ``make python`` will produce the module
 python: $(PY_MOD).so
