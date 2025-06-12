@@ -1,0 +1,17 @@
+# Compiled object files
+*.o
+
+# Shared libraries
+*.so
+
+# Executable output
+GCE_min.x
+
+# Python cache directories
+__pycache__/
+
+# Temporary build directories
+build/
+dist/
+tmp/
+
