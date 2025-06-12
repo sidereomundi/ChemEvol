@@ -3,12 +3,14 @@
 
 # Shared libraries
 *.so
+*.mod
 
 # Executable output
 GCE_min.x
 
 # Python cache directories
 __pycache__/
+*.pyc
 
 # Temporary build directories
 build/
