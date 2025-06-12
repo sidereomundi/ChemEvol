@@ -47,6 +47,16 @@ This command initialises a `GCEModel` instance, reads several files from
 routine. The printed values should match those obtained from the Fortran
 version on the same input data.
 
+## Running the tests
+
+The test suite uses `pytest`. Install the test dependencies and execute
+`pytest` from the repository root:
+
+```bash
+pip install numpy pytest
+pytest
+```
+
 ## Fortran version
 
 The original Fortran implementation is still available under the `src/`
