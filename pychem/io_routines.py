@@ -7,7 +7,6 @@ containing the arrays are stored inside an :class:`IORoutines` object.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict
