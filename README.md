@@ -15,12 +15,18 @@ resources.
 * `numpy`
 * (optional) `gfortran` to build the original Fortran code
 
+Install the Python dependencies using `pip`:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Running the Python demo
 
-1. Install the Python dependencies (only `numpy` is needed):
+1. Install the Python dependencies:
 
    ```bash
-   pip install numpy
+   pip install -r requirements.txt
    ```
 
 2. Execute the driver which loads a few tables, performs an interpolation
