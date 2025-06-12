@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict
 
 import numpy as np
@@ -20,7 +21,8 @@ class IORoutines:
     data: Dict[str, np.ndarray] = field(default_factory=dict)
 
     def _load(self, filename: str, usecols: slice | None = None) -> np.ndarray:
-        path = os.path.join(self.basepath, filename)
+        base = Path(__file__).resolve().parent / ".."
+        path = base / self.basepath / filename
         arr = np.loadtxt(path, skiprows=1)
         if usecols is not None:
             arr = arr[:, usecols]
@@ -77,12 +79,14 @@ class IORoutines:
 
         from .interpolation import InterpolationData
 
+        base = Path(__file__).resolve().parent / ".."
+
         mass_grid = None
         tables = []
         zetas = []
 
         for fname in filenames:
-            path = os.path.join(basepath, fname)
+            path = base / basepath / fname
             with open(path, "r") as fh:
                 first = fh.readline()
                 if "=" in first:
