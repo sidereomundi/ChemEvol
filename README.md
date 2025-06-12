@@ -30,6 +30,12 @@ resources.
    python -m pychem.driver
    ```
 
+   You can also invoke the package directly:
+
+   ```bash
+   python -m pychem
+   ```
+
 This command initialises a `GCEModel` instance, reads several files from
 `DATI/`, evaluates the stellar lifetime function and runs the interpolation
 routine. The printed values should match those obtained from the Fortran
