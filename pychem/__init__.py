@@ -5,5 +5,10 @@ from .interpolation import Interpolator, InterpolationData
 from .io_routines import IORoutines
 from .tau import tau
 
-__all__ = ["GCEModel", "Interpolator", "InterpolationData", "IORoutines", "tau"]
-
+__all__ = [
+    "GCEModel",
+    "Interpolator",
+    "InterpolationData",
+    "IORoutines",
+    "tau",
+]

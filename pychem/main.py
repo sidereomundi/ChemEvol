@@ -63,4 +63,3 @@ class GCEModel:
         print("Lifetime for 5 Msun:", lifetime)
         print("Interpolated Q vector (first 5):", q[:5])
         print("He core mass:", hecore)
-
