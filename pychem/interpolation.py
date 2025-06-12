@@ -30,7 +30,9 @@ class InterpolationData:
 class Interpolator:
     data: InterpolationData
 
-    def polint(self, xa: np.ndarray, ya: np.ndarray, x: float) -> Tuple[float, float]:
+    def polint(
+        self, xa: np.ndarray, ya: np.ndarray, x: float
+    ) -> Tuple[float, float]:
         """Polynomial interpolation of order len(xa)-1.
 
         This is a direct translation of the `polint` subroutine. NumPy is used
@@ -62,7 +64,9 @@ class Interpolator:
             y += dy
         return y, dy
 
-    def interp(self, mass: float, zeta: float, binmax: float) -> Tuple[np.ndarray, float]:
+    def interp(
+        self, mass: float, zeta: float, binmax: float
+    ) -> Tuple[np.ndarray, float]:
         """Bilinear interpolation of the yield table.
 
         This is a greatly simplified version of the Fortran ``interp`` routine.
@@ -108,9 +112,9 @@ class Interpolator:
             + W[:, i + 1, j + 1] * fm * fz
         )
 
-        # ``Hecore`` in the Fortran code is related to the He core mass.  We use
-        # a very rough approximation here just to populate the variable.
+        # ``Hecore`` in the Fortran code is related to the He core mass.
+        # We use a very rough approximation here just to populate the
+        # variable.
         hecore = 0.1 * mass
 
         return q, float(hecore)
-

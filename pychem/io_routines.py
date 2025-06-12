@@ -64,7 +64,9 @@ class IORoutines:
     # ------------------------------------------------------------------
     # Additional helpers ------------------------------------------------
 
-    def load_yield_grid(self, filenames: list[str], basepath: str = "DATI") -> "InterpolationData":
+    def load_yield_grid(
+        self, filenames: list[str], basepath: str = "DATI"
+    ) -> "InterpolationData":
         """Read a set of yield tables forming a mass/metallicity grid.
 
         Parameters
@@ -92,7 +94,9 @@ class IORoutines:
                 if "=" in first:
                     zetas.append(float(first.split("=")[1]))
                 else:
-                    raise ValueError(f"Could not parse metallicity from {fname}")
+                    raise ValueError(
+                        f"Could not parse metallicity from {fname}"
+                    )
             arr = np.loadtxt(path, skiprows=2)
             masses = arr[:, 0]
             yields = arr[:, 1:].T  # elements x mass
@@ -105,4 +109,3 @@ class IORoutines:
 
         W = np.stack(tables, axis=2)
         return InterpolationData(massa=mass_grid, zeta=np.array(zetas), W=W)
-

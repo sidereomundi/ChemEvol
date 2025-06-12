@@ -44,7 +44,13 @@ def tau(mass: float, tautype: int, binmax: float) -> float:
         if mass <= 0.56:
             t = 50.0
         elif mass <= 6.6:
-            t = 10 ** ((0.334 - np.sqrt(1.79 - 0.2232 * (7.764 - np.log10(mass)))) / 0.1116)
+            t = 10 ** (
+                (
+                    0.334
+                    - np.sqrt(1.79 - 0.2232 * (7.764 - np.log10(mass)))
+                )
+                / 0.1116
+            )
         else:
             t = 1.2 * mass ** -1.85 + 3e-3
         t *= 1000.0
@@ -56,4 +62,3 @@ def tau(mass: float, tautype: int, binmax: float) -> float:
             t += 4000.0
 
     return float(t)
-
