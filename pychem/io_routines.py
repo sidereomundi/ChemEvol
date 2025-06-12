@@ -13,15 +13,19 @@ from typing import Dict
 
 import numpy as np
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 @dataclass
 class IORoutines:
-    basepath: str = "YIELDSBA"
     data: Dict[str, np.ndarray] = field(default_factory=dict)
+    basepath: Path = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.basepath = BASE_DIR / "YIELDSBA"
 
     def _load(self, filename: str, usecols: slice | None = None) -> np.ndarray:
-        base = Path(__file__).resolve().parent / ".."
-        path = base / self.basepath / filename
+        path = self.basepath / filename
         arr = np.loadtxt(path, skiprows=1)
         if usecols is not None:
             arr = arr[:, usecols]
@@ -78,14 +82,12 @@ class IORoutines:
 
         from .interpolation import InterpolationData
 
-        base = Path(__file__).resolve().parent / ".."
-
         mass_grid = None
         tables = []
         zetas = []
 
         for fname in filenames:
-            path = base / basepath / fname
+            path = BASE_DIR / basepath / fname
             with open(path, "r") as fh:
                 first = fh.readline()
                 if "=" in first:
