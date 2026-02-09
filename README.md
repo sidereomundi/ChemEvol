@@ -1,9 +1,14 @@
 # ChemEvol
 
-This repository contains a minimal Python reimplementation of the `MinGCE`
-chemical evolution model alongside the original Fortran sources.
-The Python code lives in the `pychem/` package and mirrors several of the
-Fortran modules.
+This repository contains a Python translation of the `MinGCE` chemical
+evolution model alongside the original Fortran sources.
+The Python implementation lives in `pychem/` and includes:
+
+- Fortran-style table loading and shared state
+- translated interpolation/yield routines
+- full MinGCE time-evolution loop
+- optional MPI parallelism for the heavy per-bin interpolation stage
+- optional console progress bar
 
 The repository ships with a small set of yield tables in the `DATI/` and
 `YIELDSBA/` directories so that the example driver can run without external
@@ -13,6 +18,7 @@ resources.
 
 * Python 3.10+
 * `numpy`
+* Optional: `mpi4py` for MPI parallel runs
 * `gfortran` to build the original Fortran code
 * `meson` (required by `f2py` on Python 3.12+)
 
@@ -22,31 +28,51 @@ Install the Python dependencies using `pip`:
 pip install -r requirements.txt
 ```
 
-## Running the Python demo
+For MPI support:
 
-1. Install the Python dependencies:
+```bash
+pip install mpi4py
+```
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Running
 
-2. Execute the driver which loads a few tables, performs an interpolation
-   and prints some diagnostic output:
+1. Basic run (driver defaults):
 
    ```bash
    python -m pychem.driver
    ```
 
-   You can also invoke the package directly:
+2. Custom run from Python:
 
    ```bash
-   python -m pychem
+   python - <<'PY'
+   from pychem.main import GCEModel
+   m = GCEModel()
+   m.MinGCE(
+       endoftime=2000,
+       sigmat=2000.0,
+       sigmah=54.0,
+       psfr=0.2,
+       pwind=0.0,
+       delay=7000,
+       time_wind=1000000,
+       use_mpi=False,
+       show_progress=True,
+   )
+   PY
    ```
 
-This command initialises a `GCEModel` instance, reads several files from
-`DATI/`, evaluates the stellar lifetime function and runs the interpolation
-routine. The printed values should match those obtained from the Fortran
-version on the same input data.
+3. MPI run:
+
+   ```bash
+   mpiexec -n 8 python -c "from pychem.main import GCEModel; m=GCEModel(); m.MinGCE(2000,2000.0,54.0,0.2,0.0,7000,1000000,use_mpi=True,show_progress=True)"
+   ```
+
+Output files are written to `RISULTATI2/modencesmin.dat` and
+`RISULTATI2/fis.encesmin.dat`.
+
+See `docs/RUNNING.md` for a detailed run guide.
+See `docs/PERFORMANCE.md` for performance tuning and MPI scaling guidance.
 
 ## Running the tests
 
@@ -90,8 +116,5 @@ pychem/       # Python port of the main routines
 src/          # Original Fortran code
 DATI/         # Example yield tables used by the Python demo
 YIELDSBA/     # Additional tables for the heavy elements
+docs/         # Usage documentation
 ```
-
-The Python code is intentionally lightweight and only implements a subset of
-the full Fortran functionality, but the structure should make it clear how
-additional routines can be translated.

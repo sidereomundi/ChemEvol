@@ -1,15 +1,14 @@
-"""Input routines translated from ``src/io.f90``.
+"""Fortran-style IO translation for MinGCE tables.
 
-Each ``leggi*`` function reads a data file from the ``YIELDSBA``
-directory using :func:`numpy.loadtxt`. The Fortran COMMON blocks
-containing the arrays are stored inside an :class:`IORoutines` object.
+This module translates the file-loading routines from ``src/io.f90`` and the
+main table-loading block in ``src/main.f90``.  Array shapes keep a leading
+unused slot so 1-based Fortran indices map directly to Python indices.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict
 
 import numpy as np
 
@@ -17,96 +16,258 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 @dataclass
+class FortranState:
+    """Container mirroring the Fortran COMMON blocks used by MinGCE."""
+
+    ninputyield: int = 0
+    Q: np.ndarray = field(default_factory=lambda: np.zeros(34, dtype=float))
+    W: np.ndarray = field(default_factory=lambda: np.zeros((24, 36, 16), dtype=float))
+    WH: np.ndarray = field(default_factory=lambda: np.zeros((24, 36, 16), dtype=float))
+    massa: np.ndarray = field(default_factory=lambda: np.zeros(36, dtype=float))
+    massac: np.ndarray = field(default_factory=lambda: np.zeros(14, dtype=float))
+    massac2: np.ndarray = field(default_factory=lambda: np.zeros(5, dtype=float))
+    massas: np.ndarray = field(default_factory=lambda: np.zeros(8, dtype=float))
+
+    MBa: np.ndarray = field(default_factory=lambda: np.zeros(5, dtype=float))
+    WBa: np.ndarray = field(default_factory=lambda: np.zeros((5, 4), dtype=float))
+    MSr: np.ndarray = field(default_factory=lambda: np.zeros(5, dtype=float))
+    WSr: np.ndarray = field(default_factory=lambda: np.zeros((5, 4), dtype=float))
+    MY: np.ndarray = field(default_factory=lambda: np.zeros(5, dtype=float))
+    WY: np.ndarray = field(default_factory=lambda: np.zeros((5, 4), dtype=float))
+    MLa: np.ndarray = field(default_factory=lambda: np.zeros(5, dtype=float))
+    WLa: np.ndarray = field(default_factory=lambda: np.zeros((5, 4), dtype=float))
+    MRb: np.ndarray = field(default_factory=lambda: np.zeros(5, dtype=float))
+    WRb: np.ndarray = field(default_factory=lambda: np.zeros((5, 4), dtype=float))
+    MZr: np.ndarray = field(default_factory=lambda: np.zeros(5, dtype=float))
+    WZr: np.ndarray = field(default_factory=lambda: np.zeros((5, 4), dtype=float))
+    MEu: np.ndarray = field(default_factory=lambda: np.zeros(5, dtype=float))
+    WEu: np.ndarray = field(default_factory=lambda: np.zeros((5, 4), dtype=float))
+
+    zbario: np.ndarray = field(default_factory=lambda: np.zeros(10, dtype=float))
+    massaba: np.ndarray = field(default_factory=lambda: np.zeros(6, dtype=float))
+    ba: np.ndarray = field(default_factory=lambda: np.zeros((6, 10), dtype=float))
+    sr: np.ndarray = field(default_factory=lambda: np.zeros((6, 10), dtype=float))
+    yt: np.ndarray = field(default_factory=lambda: np.zeros((6, 10), dtype=float))
+    eu: np.ndarray = field(default_factory=lambda: np.zeros((6, 10), dtype=float))
+    zr: np.ndarray = field(default_factory=lambda: np.zeros((6, 10), dtype=float))
+    la: np.ndarray = field(default_factory=lambda: np.zeros((6, 10), dtype=float))
+    rb: np.ndarray = field(default_factory=lambda: np.zeros((6, 10), dtype=float))
+
+    YLi: np.ndarray = field(default_factory=lambda: np.zeros((16, 5), dtype=float))
+    massaLi: np.ndarray = field(default_factory=lambda: np.zeros(16, dtype=float))
+
+
+@dataclass
 class IORoutines:
-    data: Dict[str, np.ndarray] = field(default_factory=dict)
-    basepath: Path = field(init=False)
+    base_dati: Path = field(default_factory=lambda: BASE_DIR / "DATI")
+    base_yieldsba: Path = field(default_factory=lambda: BASE_DIR / "YIELDSBA")
 
-    def __post_init__(self) -> None:
-        self.basepath = BASE_DIR / "YIELDSBA"
+    def _read_numeric_table(self, path: Path, skiprows: int = 0) -> np.ndarray:
+        return np.loadtxt(path, skiprows=skiprows)
 
-    def _load(self, filename: str, usecols: slice | None = None) -> np.ndarray:
-        path = self.basepath / filename
-        arr = np.loadtxt(path, skiprows=1)
-        if usecols is not None:
-            arr = arr[:, usecols]
-        self.data[filename] = arr
-        return arr
+    def _load_yield_grid_file(self, state: FortranState, z: int, filename: str) -> None:
+        arr = self._read_numeric_table(self.base_dati / filename, skiprows=1)
+        n = state.ninputyield
+        state.massa[1 : n + 1] = arr[:n, 0]
+        state.W[1:24, 1 : n + 1, z] = arr[:n, 1:24].T
 
-    def leggi(self) -> np.ndarray:
-        """Load Ba yields from ``CristalloBa2.dat``."""
-        return self._load("CristalloBa2.dat", slice(0, None))
+    def _load_cris_file(self, state: FortranState, z: int, filename: str) -> None:
+        arr = self._read_numeric_table(self.base_dati / filename, skiprows=2)
+        state.massac[1:14] = arr[:13, 0]
+        state.W[1:15, 1:14, z] = arr[:13, 1:15].T
 
-    def leggiSr(self) -> np.ndarray:
-        """Load Sr yields from ``CristalloSr.dat``."""
-        return self._load("CristalloSr.dat", slice(0, None))
+    def leggi(self, state: FortranState) -> None:
+        arr = self._read_numeric_table(self.base_yieldsba / "CristalloBa2.dat", skiprows=1)
+        idx = 0
+        for j in range(1, 6):
+            for i in range(1, 10):
+                row = arr[idx]
+                idx += 1
+                state.massaba[j] = row[0]
+                state.zbario[i] = row[1]
+                state.ba[j, i] = float(np.sum(row[2:9]))
 
-    def leggiY(self) -> np.ndarray:
-        """Load Y yields from ``CristalloY.dat``."""
-        return self._load("CristalloY.dat", slice(0, None))
+    def leggiSr(self, state: FortranState) -> None:
+        arr = self._read_numeric_table(self.base_yieldsba / "CristalloSr.dat", skiprows=1)
+        idx = 0
+        for j in range(1, 6):
+            for i in range(1, 10):
+                row = arr[idx]
+                idx += 1
+                state.massaba[j] = row[0]
+                state.zbario[i] = row[1]
+                state.sr[j, i] = float(np.sum(row[2:5]))
 
-    def leggiEu(self) -> np.ndarray:
-        """Load Eu yields from ``CristalloEu.dat``."""
-        return self._load("CristalloEu.dat", slice(0, None))
+    def leggiY(self, state: FortranState) -> None:
+        arr = self._read_numeric_table(self.base_yieldsba / "CristalloY.dat", skiprows=1)
+        idx = 0
+        for j in range(1, 6):
+            for i in range(1, 10):
+                row = arr[idx]
+                idx += 1
+                state.massaba[j] = row[0]
+                state.zbario[i] = row[1]
+                state.yt[j, i] = row[2]
 
-    def leggiZr(self) -> np.ndarray:
-        """Load Zr yields from ``CristalloZr.dat``."""
-        return self._load("CristalloZr.dat", slice(0, None))
+    def leggiEu(self, state: FortranState) -> None:
+        arr = self._read_numeric_table(self.base_yieldsba / "CristalloEu.dat", skiprows=1)
+        idx = 0
+        for j in range(1, 6):
+            for i in range(1, 10):
+                row = arr[idx]
+                idx += 1
+                state.massaba[j] = row[0]
+                state.zbario[i] = row[1]
+                state.eu[j, i] = float(np.sum(row[2:9]))
 
-    def leggiLa(self) -> np.ndarray:
-        """Load La yields from ``CristalloLa.dat``."""
-        return self._load("CristalloLa.dat", slice(0, None))
+    def leggiZr(self, state: FortranState) -> None:
+        arr = self._read_numeric_table(self.base_yieldsba / "CristalloZr.dat", skiprows=1)
+        idx = 0
+        for j in range(1, 6):
+            for i in range(1, 10):
+                row = arr[idx]
+                idx += 1
+                state.massaba[j] = row[0]
+                state.zbario[i] = row[1]
+                state.zr[j, i] = float(np.sum(row[2:10]))
 
-    def leggiRb(self) -> np.ndarray:
-        """Load Rb yields from ``CristalloRb.dat``."""
-        return self._load("CristalloRb.dat", slice(0, None))
+    def leggiLa(self, state: FortranState) -> None:
+        arr = self._read_numeric_table(self.base_yieldsba / "CristalloLa.dat", skiprows=1)
+        idx = 0
+        for j in range(1, 6):
+            for i in range(1, 10):
+                row = arr[idx]
+                idx += 1
+                state.massaba[j] = row[0]
+                state.zbario[i] = row[1]
+                state.la[j, i] = row[2]
 
-    def leggiLi(self) -> np.ndarray:
-        """Load Li yields from ``KarakasLi.dat``."""
-        return self._load("KarakasLi.dat", slice(0, None))
+    def leggiRb(self, state: FortranState) -> None:
+        arr = self._read_numeric_table(self.base_yieldsba / "CristalloRb.dat", skiprows=1)
+        idx = 0
+        for j in range(1, 6):
+            for i in range(1, 10):
+                row = arr[idx]
+                idx += 1
+                state.massaba[j] = row[0]
+                state.zbario[i] = row[1]
+                state.rb[j, i] = float(np.sum(row[2:6]))
 
-    # ------------------------------------------------------------------
-    # Additional helpers ------------------------------------------------
+    def leggiLi(self, state: FortranState) -> None:
+        arr = self._read_numeric_table(self.base_yieldsba / "KarakasLi.dat", skiprows=1)
+        for i in range(1, 16):
+            row = arr[i - 1]
+            state.massaLi[i] = row[0]
+            state.YLi[i, 1:5] = row[1:5]
 
-    def load_yield_grid(
-        self, filenames: list[str], basepath: str = "DATI"
-    ) -> "InterpolationData":
-        """Read a set of yield tables forming a mass/metallicity grid.
+    def load_main_tables(self, state: FortranState, lowmassive: int = 1, mm: int = 0) -> None:
+        if lowmassive == 1:
+            state.ninputyield = 32
+            inputyield = [
+                "WW95aMD.csv",
+                "WW95bMD.csv",
+                "WW95cMD.csv",
+                "WW95dMD.csv",
+                "WW95e.csv",
+            ]
+            if mm == 1:
+                inputyield[4] = "WW95eMM.csv"
+            if mm == 2:
+                inputyield[4] = "WW95eMD.csv"
+        else:
+            state.ninputyield = 35
+            inputyield = [
+                "WW95zeroMD.K0001.csv",
+                "WW95-4MD.K004.csv",
+                "WW95-2MD.K008.csv",
+                "WW95-1MD.K02.csv",
+                "WW9502.K02.csv",
+            ]
+            if mm == 1:
+                inputyield[4] = "WW9502MM.K02.csv"
+            if mm == 2:
+                inputyield[4] = "WW9502MD.K02.csv"
 
-        Parameters
-        ----------
-        filenames : list of str
-            Sequence of files containing the yields for different
-            metallicities. Each file should start with a line of the form
-            ``"Z=<value>"`` which is used to build the metallicity grid.
-        basepath : str, optional
-            Directory containing the input files.
-        """
+        for z, filename in enumerate(inputyield, start=1):
+            self._load_yield_grid_file(state, z, filename)
 
-        from .interpolation import InterpolationData
+        iron = self._read_numeric_table(self.base_dati / "Kobayashi-Iron.dat", skiprows=1)
+        for n in range(15, 33):
+            row = iron[n - 15]
+            state.massa[n] = row[0]
+            state.W[9, n, 5] = row[1]
+            state.W[9, n, 4] = row[2]
+            state.W[9, n, 3] = row[3]
+            state.W[9, n, 2] = row[4]
+            state.W[9, n, 1] = row[5]
 
-        mass_grid = None
-        tables = []
-        zetas = []
+        iron_h = self._read_numeric_table(self.base_dati / "Kobayashi-IronHyper.dat", skiprows=1)
+        for n in range(15, 33):
+            row = iron_h[n - 15]
+            state.massa[n] = row[0]
+            state.WH[9, n, 5] = row[1]
+            state.WH[9, n, 4] = row[2]
+            state.WH[9, n, 3] = row[3]
+            state.WH[9, n, 2] = row[4]
+            state.WH[9, n, 1] = row[5]
+            for i in range(1, 6):
+                state.W[9, n, i] = 0.5 * (state.WH[9, n, i] + state.W[9, n, i])
 
-        for fname in filenames:
-            path = BASE_DIR / basepath / fname
-            with open(path, "r") as fh:
-                first = fh.readline()
-                if "=" in first:
-                    zetas.append(float(first.split("=")[1]))
-                else:
-                    raise ValueError(
-                        f"Could not parse metallicity from {fname}"
-                    )
-            arr = np.loadtxt(path, skiprows=2)
-            masses = arr[:, 0]
-            yields = arr[:, 1:].T  # elements x mass
-            if mass_grid is None:
-                mass_grid = masses
-            else:
-                if not np.allclose(mass_grid, masses):
-                    raise ValueError("Inconsistent mass grids in input files")
-            tables.append(yields)
+        self._load_cris_file(state, 6, "Cris0.dat")
+        self._load_cris_file(state, 7, "Cris8.dat")
+        self._load_cris_file(state, 8, "Cris5.dat")
+        self._load_cris_file(state, 9, "Cris004.dat")
+        self._load_cris_file(state, 10, "Cris02.dat")
 
-        W = np.stack(tables, axis=2)
-        return InterpolationData(massa=mass_grid, zeta=np.array(zetas), W=W)
+        arr = self._read_numeric_table(self.base_dati / "Bariumnew.dat")
+        for n in range(1, 5):
+            state.MBa[n] = arr[n - 1, 0]
+            state.WBa[n, 1:4] = arr[n - 1, 1:4]
+            state.WBa[n, 3] *= 640.0
+
+        arr = self._read_numeric_table(self.base_dati / "Strontiumnew.dat")
+        for n in range(1, 5):
+            state.MSr[n] = arr[n - 1, 0]
+            state.WSr[n, 1:4] = arr[n - 1, 1:4]
+            state.WSr[n, 3] *= 50.0
+
+        arr = self._read_numeric_table(self.base_dati / "Yttriumnew.dat")
+        for n in range(1, 5):
+            state.MY[n] = arr[n - 1, 0]
+            state.WY[n, 1:4] = arr[n - 1, 1:4]
+            state.WY[n, 3] *= 150.0
+
+        arr = self._read_numeric_table(self.base_dati / "Lantanumnew.dat")
+        for n in range(1, 5):
+            state.MLa[n] = arr[n - 1, 0]
+            state.WLa[n, 1:4] = arr[n - 1, 1:4]
+            state.WLa[n, 3] *= 211.0
+
+        arr = self._read_numeric_table(self.base_dati / "Zirconiumnew.dat")
+        for n in range(1, 5):
+            state.MZr[n] = arr[n - 1, 0]
+            state.WZr[n, 1:4] = arr[n - 1, 1:4]
+            state.WZr[n, 3] *= 346.0
+
+        arr = self._read_numeric_table(self.base_dati / "Rubidiumnew.dat")
+        for n in range(1, 5):
+            state.MRb[n] = arr[n - 1, 0]
+            state.WRb[n, 1:4] = arr[n - 1, 1:4]
+            state.WRb[n, 3] *= 10.0
+
+        arr = self._read_numeric_table(self.base_dati / "Europiumnew.dat")
+        for n in range(1, 5):
+            state.MEu[n] = arr[n - 1, 0]
+            state.WEu[n, 1:4] = arr[n - 1, 1:4]
+            state.WEu[n, 3] *= 1.0e-20
+            state.WEu[n, 2] = state.WEu[n, 3] * 1.0e-20
+            state.WEu[n, 1] = state.WEu[n, 3] * 1.0e-20
+
+        self.leggiLi(state)
+        self.leggiLa(state)
+        self.leggiRb(state)
+        self.leggiZr(state)
+        self.leggiEu(state)
+        self.leggiY(state)
+        self.leggiSr(state)
+        self.leggi(state)
